@@ -111,13 +111,16 @@ uv run sec-scraper \
   --end-date 2026-04-30
 ```
 
-Omit both `--start-date` and `--end-date` to scrape yesterday's filings (the default for the scheduled ECS task):
+Omit both `--start-date` and `--end-date` to scrape the last `--lookback-days` days ending yesterday (default 3; this is what the scheduled ECS task does):
 
 ```bash
 uv run sec-scraper --bucket idi-sec-scraper daily
+uv run sec-scraper --bucket idi-sec-scraper daily --lookback-days 7
 ```
 
-If either date flag is supplied, both are required — mixing one explicit date with the yesterday default could silently produce an invalid range.
+Filings already in the bucket are skipped, so the overlap is cheap. It exists so that a run which misses a day (the SEC publishes the index late, the SEC blocks the task, or the task fails) is healed by the next run without a manual backfill. The SEC does not publish an index for weekends or holidays; those days log a 403 on the index and contribute no filings.
+
+If either date flag is supplied, both are required — mixing one explicit date with a default could silently produce an invalid range. `--lookback-days` is ignored when explicit dates are given.
 
 ### Common options
 
@@ -402,7 +405,7 @@ uv run --group pulumi pulumi up
 | `idi:app_name` | `sec-scraper` | Application name used in resource naming |
 | `idi:bucket_name` | — | S3 bucket for scraped filings (created externally) |
 | `idi:sec_user_agent` | — | SEC EDGAR User-Agent header (secret; stored in Secrets Manager) |
-| `idi:cron_sec_scraper` | `cron(0 3 * * ? *)` | EventBridge schedule expression (3 AM UTC daily) |
+| `idi:cron_sec_scraper` | `cron(0 6 * * ? *)` | EventBridge schedule expression (6 AM UTC daily; the SEC publishes the prior day's index at ~03:01 UTC in winter) |
 | `idi:schedule_enabled` | `false` | Enable the EventBridge schedule |
 | `idi:cpu` | `1024` | Fargate task CPU units |
 | `idi:memory` | `8192` | Fargate task memory (MiB) |

@@ -83,7 +83,9 @@ scheduler_policy = aws.iam.RolePolicy(
 # -----------------------------------------------------------------------------
 # EventBridge Schedule
 # -----------------------------------------------------------------------------
-schedule_expression = config.config.get("cron_sec_scraper") or "cron(0 3 * * ? *)"
+# The SEC publishes the previous day's crawler index at ~22:01 US/Eastern, which is
+# 02:01 UTC in summer and 03:01 UTC in winter. 06:00 UTC leaves margin on both sides.
+schedule_expression = config.config.get("cron_sec_scraper") or "cron(0 6 * * ? *)"
 schedule_enabled = (config.config.get("schedule_enabled") or "false") == "true"
 
 _CONTAINER_NAME = ecs.CONTAINER_NAME

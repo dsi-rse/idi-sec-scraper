@@ -26,6 +26,7 @@ from idi_sec_scraper.discovery import (
     Discovery,
     HistoricalDiscovery,
     _before_cutoff,
+    _force_https,
     _matches_form_types,
 )
 
@@ -65,6 +66,38 @@ class TestDiscoverDaily:
         )
 
         assert all(isinstance(f, DiscoveredFiling) for f in result)
+
+    def test_rewrites_http_sec_urls_to_https(self, mocker):
+        client = _make_sec_client(mocker)
+        result = DailyDiscovery(client, [".*"]).discover(
+            datetime.date(2026, 4, 1), datetime.date(2026, 4, 1)
+        )
+
+        assert result, "fixture should yield filings"
+        assert all(f.url.startswith("https://www.sec.gov/") for f in result)
+        assert result[0].url == (
+            "https://www.sec.gov/Archives/edgar/data/1139685/0001213900-26-037770-index.htm"
+        )
+
+    def test_leaves_non_sec_and_https_urls_unchanged(self):
+        https_filing = DiscoveredFiling(
+            cik="1",
+            accession_number="a",
+            form_type="8-K",
+            filing_date=datetime.date(2026, 4, 1),
+            url="https://www.sec.gov/x",
+            company_name="c",
+        )
+        other_filing = DiscoveredFiling(
+            cik="1",
+            accession_number="a",
+            form_type="8-K",
+            filing_date=datetime.date(2026, 4, 1),
+            url="http://example.com/x",
+            company_name="c",
+        )
+        assert _force_https(https_filing).url == "https://www.sec.gov/x"
+        assert _force_https(other_filing).url == "http://example.com/x"
 
     def test_filters_by_exact_form_type(self, mocker):
         client = _make_sec_client(mocker)
@@ -130,7 +163,8 @@ class TestDiscoverDaily:
         assert f.form_type == "8-K"
         assert f.filing_date == datetime.date(2026, 4, 1)
         assert (
-            f.url == "http://www.sec.gov/Archives/edgar/data/1139685/0001213900-26-037770-index.htm"
+            f.url
+            == "https://www.sec.gov/Archives/edgar/data/1139685/0001213900-26-037770-index.htm"
         )
         assert f.company_name == "20/20 Biolabs, Inc."
 
