@@ -597,18 +597,20 @@ wheels = [
 
 [[package]]
 name = "idi-ftm2j-shared"
-version = "0.1.13"
+version = "0.1.20"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
+    { name = "pandas" },
+    { name = "pyarrow" },
     { name = "requests" },
     { name = "smart-open", extra = ["s3"] },
     { name = "tqdm" },
     { name = "watchtower" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/37/75/666d7c9ea3b6aa6d803dc2dbbc3a6bf911db39bd2b586a6ff91716ec3774/idi_ftm2j_shared-0.1.13.tar.gz", hash = "sha256:5b7bbb511096108a7e174ec166840b48c51e35a9d2e597c7899b4ca2ea14ffbf", size = 118569, upload-time = "2026-07-17T14:04:51.984Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/98/2867d5876b87e1499112142ccdc426d5c5fccc8e521df58ed92e36db028e/idi_ftm2j_shared-0.1.20.tar.gz", hash = "sha256:a0b34ed5e5abc6426755e5e16da91d9e61a6ecce9d5c193f4334d5cfb18c70af", size = 134082, upload-time = "2026-11-12T19:24:09.781Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/8c/e53a5ca67b72618234fd599395fcfc660b148bb3a08f8867ff200b1cf305/idi_ftm2j_shared-0.1.13-py3-none-any.whl", hash = "sha256:3a782c41aa0c579b5bdaa43a2fe758c75adc213994918050b054741ad009a3e2", size = 21305, upload-time = "2026-07-17T14:04:50.776Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/50/7dcd2488b7c4f51e52cdfef976d6a542b5fa67d916aefa215ec77d9a8fcf/idi_ftm2j_shared-0.1.20-py3-none-any.whl", hash = "sha256:4b6b9184f3fbf84bc06237003bae5b61018cb282e0c086d70b85956ac5f7812f", size = 23094, upload-time = "2026-11-12T19:24:08.61Z" },
 ]
 
 [[package]]
@@ -649,7 +651,7 @@ pulumi = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.12.0" },
     { name = "boto3", specifier = ">=1.42.70" },
-    { name = "idi-ftm2j-shared", specifier = ">=0.1.13" },
+    { name = "idi-ftm2j-shared", specifier = ">=0.1.20" },
     { name = "idna", specifier = ">=3.15" },
     { name = "pandas", specifier = ">=3.0.2" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.10.0" },
