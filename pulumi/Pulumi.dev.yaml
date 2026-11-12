@@ -4,7 +4,7 @@
 # not a secret.
 config:
   idi:sec_user_agent: "DSI Core Facility dsicorefacility_project8@uchicago.edu"
-  idi:cron_sec_scraper: "cron(0 3 * * ? *)"
+  idi:cron_sec_scraper: "cron(0 6 * * ? *)"
   idi:cpu: "1024"
   idi:memory: "8192"
   idi:rate_limit: "0.15"

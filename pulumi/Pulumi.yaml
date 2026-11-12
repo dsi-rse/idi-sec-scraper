@@ -19,7 +19,7 @@ config:
 
   idi:cron_sec_scraper:
     description: EventBridge cron schedule for the SEC scraper (daily run)
-    default: "cron(0 3 * * ? *)"
+    default: "cron(0 6 * * ? *)"
 
   idi:cpu:
     description: Fargate task CPU units (256, 512, 1024, 2048, 4096)
