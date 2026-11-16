@@ -1,6 +1,7 @@
 """Discovery logic for SEC scraper runs."""
 
 # Standard library imports
+import dataclasses
 import datetime
 import json
 import re
@@ -52,6 +53,24 @@ _INDEX_HTM_URL = (
 )
 
 
+_HTTP_SEC_PREFIX = "http://www.sec.gov/"
+_HTTPS_SEC_PREFIX = "https://www.sec.gov/"
+
+
+def _force_https(filing: DiscoveredFiling) -> DiscoveredFiling:
+    """Return ``filing`` with an ``https://`` SEC URL.
+
+    The SEC crawler index lists filing URLs as ``http://``, and the SEC answers each
+    with a 301 to ``https://``. Rewriting up front saves a round trip per filing and
+    stores the canonical URL in the manifest. Non-SEC and already-https URLs are unchanged.
+    """
+    if filing.url.startswith(_HTTP_SEC_PREFIX):
+        return dataclasses.replace(
+            filing, url=_HTTPS_SEC_PREFIX + filing.url[len(_HTTP_SEC_PREFIX) :]
+        )
+    return filing
+
+
 class DailyDiscovery(Discovery):
     """Discovers filings from the SEC daily crawler index over a date range."""
 
@@ -68,7 +87,7 @@ class DailyDiscovery(Discovery):
             List of :class:`DiscoveredFiling` objects ordered by date ascending.
         """
         return [
-            filing
+            _force_https(filing)
             for filing in get_daily_index(start_date, end_date, client=self.sec_client)
             if _matches_form_types(filing.form_type, self.form_types)
             and not _before_cutoff(

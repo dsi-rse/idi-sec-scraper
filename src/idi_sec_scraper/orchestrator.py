@@ -13,6 +13,10 @@ from idi_sec_scraper.pipeline import (
 )
 from idi_sec_scraper.types import DailyPipelineConfig, HistoricalPipelineConfig
 
+# Days scraped by a scheduled run with no explicit dates (ending yesterday). Three
+# covers a weekend plus one missed weekday, so one bad night never loses a day.
+DEFAULT_LOOKBACK_DAYS = 3
+
 
 def main() -> None:
     """Run the SEC scraper pipeline from the command line."""
@@ -70,8 +74,8 @@ def main() -> None:
         type=datetime.date.fromisoformat,
         help=(
             "Start date inclusive (YYYY-MM-DD). "
-            "If omitted, both --start-date and --end-date default to yesterday. "
-            "If either is supplied, both are required."
+            "If omitted, the range defaults to the --lookback-days days ending yesterday. "
+            "If either date is supplied, both are required."
         ),
     )
     daily.add_argument(
@@ -80,20 +84,33 @@ def main() -> None:
         type=datetime.date.fromisoformat,
         help=(
             "End date inclusive (YYYY-MM-DD). "
-            "If omitted, both --start-date and --end-date default to yesterday. "
-            "If either is supplied, both are required."
+            "If omitted, the range defaults to the --lookback-days days ending yesterday. "
+            "If either date is supplied, both are required."
+        ),
+    )
+    daily.add_argument(
+        "--lookback-days",
+        type=int,
+        default=DEFAULT_LOOKBACK_DAYS,
+        help=(
+            "When no dates are given, scrape this many days ending yesterday "
+            f"(default: {DEFAULT_LOOKBACK_DAYS}). Already-scraped filings are skipped, so the "
+            "overlap lets a run that missed a day (late SEC index, SEC block, task failure) "
+            "self-heal on the next run. Ignored when --start-date/--end-date are supplied."
         ),
     )
 
     args = parser.parse_args()
 
     if args.mode == "daily":
-        # If neither date is given, default both to yesterday.
+        # If neither date is given, default to the lookback window ending yesterday.
         # If exactly one is given, require the other — mixing an explicit date
-        # with a yesterday default can silently produce start > end.
+        # with a default can silently produce start > end.
         if args.start_date is None and args.end_date is None:
+            if args.lookback_days < 1:
+                parser.error("--lookback-days must be at least 1")
             yesterday = datetime.date.today() - datetime.timedelta(days=1)
-            args.start_date = yesterday
+            args.start_date = yesterday - datetime.timedelta(days=args.lookback_days - 1)
             args.end_date = yesterday
         elif args.start_date is None:
             parser.error("--start-date is required when --end-date is provided")

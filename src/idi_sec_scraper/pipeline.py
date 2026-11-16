@@ -107,12 +107,6 @@ class Pipeline(ABC):
 class SECScraperPipeline(Pipeline, ABC):
     """Pipeline that fetches SEC filings and stores content and manifests in S3."""
 
-    # Daily runs warn when a filing that has already been scraped (its manifest
-    # is present in S3) reappears in the daily index — an unexpected re-listing
-    # worth surfacing. Historical runs re-process cached filings by design and
-    # stay silent.
-    _warn_on_known_filing: bool = False
-
     def __init__(self, config: PipelineConfig, sec_client: SecClient) -> None:
         """Initialize the pipeline and create the discovery instance.
 
@@ -282,13 +276,6 @@ class SECScraperPipeline(Pipeline, ABC):
         filing_index_s3_key = f"{prefix}/index.htm"
 
         if key_exists(filing_manifest_s3_key):
-            if self._warn_on_known_filing:
-                self.logger.warning(
-                    "Known filing seen in daily index: %s / %s (form=%s)",
-                    filing.cik,
-                    filing.accession_number,
-                    filing.form_type,
-                )
             index_html = load_content(filing_index_s3_key).decode()
             scraped_filing = get_filing(
                 filing.form_type,
@@ -479,9 +466,12 @@ class HistoricalSECScraperPipeline(SECScraperPipeline):
 
 
 class DailySECScraperPipeline(SECScraperPipeline):
-    """Pipeline for daily runs, discovering filings from daily crawler indexes."""
+    """Pipeline for daily runs, discovering filings from daily crawler indexes.
 
-    _warn_on_known_filing: bool = True
+    Scheduled runs cover a multi-day lookback window, so filings that were already
+    scraped on an earlier night are expected in the index; they are skipped and
+    reported in the run summary as "Skipped (cached)".
+    """
 
     def _make_discovery(self) -> DailyDiscovery:
         """Create a DailyDiscovery instance from config and filter patterns."""

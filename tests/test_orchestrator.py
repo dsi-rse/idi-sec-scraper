@@ -118,16 +118,58 @@ class TestDailyMode:
         assert mock_daily.return_value.run.called
         assert not mock_hist.return_value.run.called
 
-    def test_dates_default_to_yesterday(self, mocker):
-        fake_today = datetime.date(2026, 4, 2)
+    @staticmethod
+    def _freeze_today(mocker, today: datetime.date) -> None:
         mock_dt = mocker.patch("idi_sec_scraper.orchestrator.datetime")
-        mock_dt.date.today.return_value = fake_today
+        mock_dt.date.today.return_value = today
         mock_dt.date.fromisoformat = datetime.date.fromisoformat
         mock_dt.timedelta = datetime.timedelta
+
+    def test_dates_default_to_lookback_window_ending_yesterday(self, mocker):
+        self._freeze_today(mocker, datetime.date(2026, 4, 4))
         _, mock_daily = _run(mocker, ["--bucket", "b", "daily"])
+        config = mock_daily.call_args.args[0]
+        # Default lookback is 3 days: Apr 1, 2, 3.
+        assert config.start_date == datetime.date(2026, 4, 1)
+        assert config.end_date == datetime.date(2026, 4, 3)
+
+    def test_lookback_days_override(self, mocker):
+        self._freeze_today(mocker, datetime.date(2026, 4, 10))
+        _, mock_daily = _run(mocker, ["--bucket", "b", "daily", "--lookback-days", "7"])
+        config = mock_daily.call_args.args[0]
+        assert config.start_date == datetime.date(2026, 4, 3)
+        assert config.end_date == datetime.date(2026, 4, 9)
+
+    def test_lookback_days_one_is_yesterday_only(self, mocker):
+        self._freeze_today(mocker, datetime.date(2026, 4, 2))
+        _, mock_daily = _run(mocker, ["--bucket", "b", "daily", "--lookback-days", "1"])
         config = mock_daily.call_args.args[0]
         assert config.start_date == datetime.date(2026, 4, 1)
         assert config.end_date == datetime.date(2026, 4, 1)
+
+    def test_lookback_days_below_one_errors(self, mocker):
+        mocker.patch("sys.argv", ["sec-scraper", "--bucket", "b", "daily", "--lookback-days", "0"])
+        with pytest.raises(SystemExit):
+            main()
+
+    def test_lookback_days_ignored_with_explicit_dates(self, mocker):
+        _, mock_daily = _run(
+            mocker,
+            [
+                "--bucket",
+                "b",
+                "daily",
+                "--lookback-days",
+                "30",
+                "--start-date",
+                "2026-04-01",
+                "--end-date",
+                "2026-04-02",
+            ],
+        )
+        config = mock_daily.call_args.args[0]
+        assert config.start_date == datetime.date(2026, 4, 1)
+        assert config.end_date == datetime.date(2026, 4, 2)
 
     def test_start_and_end_date_parsed(self, mocker):
         _, mock_daily = _run(
